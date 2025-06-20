@@ -3,9 +3,25 @@ name = "twenty-forty-eight"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "twenty_forty_eight"
+path = "src/lib.rs"
+
+[[bin]]
+name = "twenty-forty-eight"
+path = "src/main.rs"
+
+[[bin]]
+name = "web-server"
+path = "src/bin/web_server.rs"
+
 [dependencies]
 rand = "0.8"
 rayon = "1.7"
 lazy_static = "1.4"
+actix-web = "4.3"
+actix-files = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
 
 
