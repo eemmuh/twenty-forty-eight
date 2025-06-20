@@ -1,11 +1,4 @@
-use twenty_forty_eight::GameBoard;
-use std::collections::HashMap;
-use std::sync::Mutex;
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref TRANSPOSITION_TABLE: Mutex<HashMap<u64, f32>> = Mutex::new(HashMap::new());
-}
+use twenty_forty_eight::{GameBoard, get_cache_stats, clear_cache};
 
 fn main() {
     let mut game = GameBoard::new();
@@ -39,12 +32,12 @@ fn main() {
             break;
         }
         
-        // Clear transposition table periodically to manage memory
-        if moves % 50 == 0 {
-            let cache_size = TRANSPOSITION_TABLE.lock().unwrap().len();
+        // Clear transposition table less frequently and only if very large
+        if moves % 200 == 0 {
+            let (hits, misses, cache_size) = get_cache_stats();
             println!("Cache size: {} entries", cache_size);
-            if cache_size > 100000 {
-                TRANSPOSITION_TABLE.lock().unwrap().clear();
+            if cache_size > 1_000_000 {
+                clear_cache();
                 println!("Cache cleared to prevent memory bloat");
             }
         }
@@ -60,8 +53,9 @@ fn main() {
     println!("Final score: {}", game.get_score());
     
     // Final cache statistics
-    let final_cache_size = TRANSPOSITION_TABLE.lock().unwrap().len();
+    let (hits, misses, final_cache_size) = get_cache_stats();
     println!("Final transposition table entries: {}", final_cache_size);
+    println!("Cache hits: {} | misses: {} | hit rate: {:.2}%", hits, misses, if hits + misses > 0 { (hits as f64 / (hits + misses) as f64) * 100.0 } else { 0.0 });
 }
 
 
