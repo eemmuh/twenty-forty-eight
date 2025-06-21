@@ -161,6 +161,9 @@ impl GameBoard {
                 new_row[write_pos] = row[i];
                 write_pos += 1;
                 i += 1;
+                if write_pos - 1 != i - 1 {
+                    moved = true;
+                }
             }
         }
         (new_row, moved)
@@ -201,3 +204,5 @@ impl GameBoard {
         self.max_tile = Self::calculate_max_tile(&self.board);
     }
 } 
+
+

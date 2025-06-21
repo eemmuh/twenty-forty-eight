@@ -34,7 +34,7 @@ fn main() {
         
         // Clear transposition table less frequently and only if very large
         if moves % 200 == 0 {
-            let (hits, misses, cache_size) = get_cache_stats();
+            let (_hits, _misses, cache_size) = get_cache_stats();
             println!("Cache size: {} entries", cache_size);
             if cache_size > 1_000_000 {
                 clear_cache();

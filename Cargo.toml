@@ -11,10 +11,6 @@ path = "src/lib.rs"
 name = "twenty-forty-eight"
 path = "src/main.rs"
 
-[[bin]]
-name = "web-server"
-path = "src/bin/web_server.rs"
-
 [dependencies]
 rand = "0.8"
 rayon = "1.7"
