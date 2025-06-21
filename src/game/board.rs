@@ -1,12 +1,5 @@
 use rand::prelude::SliceRandom;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
+use super::moves::Direction;
 
 #[derive(Debug, Clone)]
 pub struct GameBoard {
@@ -204,5 +197,3 @@ impl GameBoard {
         self.max_tile = Self::calculate_max_tile(&self.board);
     }
 } 
-
-

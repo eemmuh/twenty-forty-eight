@@ -2,6 +2,12 @@
 name = "twenty-forty-eight"
 version = "0.1.0"
 edition = "2021"
+description = "A high-performance AI solver for the 2048 game"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+repository = "https://github.com/yourusername/twenty-forty-eight"
+keywords = ["game", "ai", "solver", "2048", "algorithm"]
+categories = ["games", "algorithms"]
 
 [lib]
 name = "twenty_forty_eight"
@@ -11,13 +17,15 @@ path = "src/lib.rs"
 name = "twenty-forty-eight"
 path = "src/main.rs"
 
+[[example]]
+name = "cli_game"
+path = "examples/cli_game.rs"
+
 [dependencies]
 rand = "0.8"
-rayon = "1.7"
 lazy_static = "1.4"
-actix-web = "4.3"
-actix-files = "0.6"
-serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+criterion = "0.5"
 
 
