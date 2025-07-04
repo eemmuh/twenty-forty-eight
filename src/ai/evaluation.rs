@@ -61,11 +61,11 @@ impl GameBoard {
             [11.0, 10.0, 9.0,  8.0],
             [0.0,  1.0,  2.0,  3.0],
         ];
-        for i in 0..4 {
-            for j in 0..4 {
+        for (i, row) in snake_weights.iter().enumerate() {
+            for (j, &weight) in row.iter().enumerate() {
                 let value = self.board[i][j];
                 if value > 0 {
-                    score += value as f32 * snake_weights[i][j];
+                    score += value as f32 * weight;
                 }
             }
         }
@@ -128,21 +128,17 @@ impl GameBoard {
                 let current_value = self.board[i][current] as f32;
                 let next_value = self.board[i][next] as f32;
                 if current_value > next_value {
-                    if current_direction > 0 {
-                        score = 0.0;
-                    } else if current_direction < 0 {
-                        score += next_value;
-                    } else {
-                        score = next_value;
+                    match current_direction.cmp(&0) {
+                        std::cmp::Ordering::Greater => score = 0.0,
+                        std::cmp::Ordering::Less => score += next_value,
+                        std::cmp::Ordering::Equal => score = next_value,
                     }
                     current_direction = -1;
                 } else if next_value > current_value {
-                    if current_direction < 0 {
-                        score = 0.0;
-                    } else if current_direction > 0 {
-                        score += current_value;
-                    } else {
-                        score = current_value;
+                    match current_direction.cmp(&0) {
+                        std::cmp::Ordering::Less => score = 0.0,
+                        std::cmp::Ordering::Greater => score += current_value,
+                        std::cmp::Ordering::Equal => score = current_value,
                     }
                     current_direction = 1;
                 }
@@ -166,21 +162,17 @@ impl GameBoard {
                 let current_value = self.board[current][j] as f32;
                 let next_value = self.board[next][j] as f32;
                 if current_value > next_value {
-                    if current_direction > 0 {
-                        score = 0.0;
-                    } else if current_direction < 0 {
-                        score += next_value;
-                    } else {
-                        score = next_value;
+                    match current_direction.cmp(&0) {
+                        std::cmp::Ordering::Greater => score = 0.0,
+                        std::cmp::Ordering::Less => score += next_value,
+                        std::cmp::Ordering::Equal => score = next_value,
                     }
                     current_direction = -1;
                 } else if next_value > current_value {
-                    if current_direction < 0 {
-                        score = 0.0;
-                    } else if current_direction > 0 {
-                        score += current_value;
-                    } else {
-                        score = current_value;
+                    match current_direction.cmp(&0) {
+                        std::cmp::Ordering::Less => score = 0.0,
+                        std::cmp::Ordering::Greater => score += current_value,
+                        std::cmp::Ordering::Equal => score = current_value,
                     }
                     current_direction = 1;
                 }

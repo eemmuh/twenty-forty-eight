@@ -9,6 +9,12 @@ pub struct GameBoard {
     pub max_tile: u32,    // Cached max tile
 }
 
+impl Default for GameBoard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GameBoard {
     pub fn new() -> Self {
         let mut board = [[0; 4]; 4];
@@ -40,9 +46,9 @@ impl GameBoard {
 
     pub(crate) fn calculate_empty_mask(board: &[[u32; 4]; 4]) -> u16 {
         let mut mask = 0u16;
-        for i in 0..4 {
-            for j in 0..4 {
-                if board[i][j] == 0 {
+        for (i, row) in board.iter().enumerate() {
+            for (j, &cell) in row.iter().enumerate() {
+                if cell == 0 {
                     mask |= 1 << (i * 4 + j);
                 }
             }
@@ -56,9 +62,9 @@ impl GameBoard {
 
     fn add_random_tile(board: &mut [[u32; 4]; 4]) {
         let mut empty_cells = Vec::new();
-        for i in 0..4 {
-            for j in 0..4 {
-                if board[i][j] == 0 {
+        for (i, row) in board.iter().enumerate() {
+            for (j, &cell) in row.iter().enumerate() {
+                if cell == 0 {
                     empty_cells.push((i, j));
                 }
             }
@@ -73,15 +79,15 @@ impl GameBoard {
         let mut new_board = self.board;
         match direction {
             Direction::Left => {
-                for row in 0..4 {
-                    let (new_row, row_moved) = Self::merge_row(&self.board[row]);
+                for (row, board_row) in self.board.iter().enumerate() {
+                    let (new_row, row_moved) = Self::merge_row(board_row);
                     new_board[row] = new_row;
                     moved |= row_moved;
                 }
             }
             Direction::Right => {
-                for row in 0..4 {
-                    let mut reversed_row = self.board[row];
+                for (row, board_row) in self.board.iter().enumerate() {
+                    let mut reversed_row = *board_row;
                     reversed_row.reverse();
                     let (merged_row, row_moved) = Self::merge_row(&reversed_row);
                     new_board[row] = {
@@ -195,5 +201,172 @@ impl GameBoard {
         Self::add_random_tile(&mut self.board);
         self.empty_mask = Self::calculate_empty_mask(&self.board);
         self.max_tile = Self::calculate_max_tile(&self.board);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_row_basic() {
+        // Test basic merging
+        let row = [2, 2, 0, 0];
+        let (result, moved) = GameBoard::merge_row(&row);
+        assert_eq!(result, [4, 0, 0, 0]);
+        assert!(moved);
+    }
+
+    #[test]
+    fn test_merge_row_no_merge() {
+        // Test no possible merges
+        let row = [2, 4, 8, 16];
+        let (result, moved) = GameBoard::merge_row(&row);
+        assert_eq!(result, [2, 4, 8, 16]);
+        assert!(!moved);
+    }
+
+    #[test]
+    fn test_merge_row_with_gaps() {
+        // Test moving tiles without merging (gaps close but values don't merge)
+        let row = [2, 0, 2, 0];
+        let (result, moved) = GameBoard::merge_row(&row);
+        assert_eq!(result, [2, 2, 0, 0]);
+        assert!(moved);
+    }
+
+    #[test]
+    fn test_merge_row_multiple_merges() {
+        // Test multiple merges in one row
+        let row = [2, 2, 4, 4];
+        let (result, moved) = GameBoard::merge_row(&row);
+        assert_eq!(result, [4, 8, 0, 0]);
+        assert!(moved);
+    }
+
+    #[test]
+    fn test_merge_row_no_consecutive_merges() {
+        // Test that tiles don't merge consecutively
+        let row = [4, 2, 2, 0];
+        let (result, moved) = GameBoard::merge_row(&row);
+        assert_eq!(result, [4, 4, 0, 0]);
+        assert!(moved);
+    }
+
+    #[test]
+    fn test_calculate_empty_mask() {
+        let board = [
+            [2, 0, 4, 0],
+            [0, 8, 0, 16],
+            [32, 0, 64, 0],
+            [0, 128, 0, 256]
+        ];
+        let mask = GameBoard::calculate_empty_mask(&board);
+        // Empty positions: (0,1), (0,3), (1,0), (1,2), (2,1), (2,3), (3,0), (3,2)
+        let expected = (1 << 1) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 9) | (1 << 11) | (1 << 12) | (1 << 14);
+        assert_eq!(mask, expected);
+    }
+
+    #[test]
+    fn test_calculate_max_tile() {
+        let board = [
+            [2, 4, 8, 16],
+            [32, 64, 128, 256],
+            [512, 1024, 2048, 4096],
+            [8192, 16384, 32768, 65536]
+        ];
+        assert_eq!(GameBoard::calculate_max_tile(&board), 65536);
+    }
+
+    #[test]
+    fn test_count_empty_cells() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 0, 4, 0],
+            [0, 8, 0, 16],
+            [32, 0, 64, 0],
+            [0, 128, 0, 256]
+        ]);
+        assert_eq!(board.count_empty_cells(), 8);
+    }
+
+    #[test]
+    fn test_is_game_over_with_empty_cells() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 0, 4, 8],
+            [16, 32, 64, 128],
+            [256, 512, 1024, 2048],
+            [4096, 8192, 16384, 32768]
+        ]);
+        assert!(!board.is_game_over());
+    }
+
+    #[test]
+    fn test_is_game_over_with_possible_merges() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 4, 8, 16],
+            [32, 64, 128, 256],
+            [512, 1024, 2048, 4096],
+            [8192, 16384, 32768, 32768] // Two 32768s can merge
+        ]);
+        assert!(!board.is_game_over());
+    }
+
+    #[test]
+    fn test_is_game_over_true() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 4, 8, 16],
+            [32, 64, 128, 256],
+            [512, 1024, 2048, 4096],
+            [8192, 16384, 32768, 65536]
+        ]);
+        assert!(board.is_game_over());
+    }
+
+    #[test]
+    fn test_move_tiles_left() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 0, 2, 0],
+            [4, 4, 0, 0],
+            [0, 8, 0, 8],
+            [16, 0, 0, 0]
+        ]);
+        
+        let moved = board.move_tiles(Direction::Left);
+        assert!(moved);
+        
+        let expected = [
+            [2, 2, 0, 0],  // 2,0,2,0 -> 2,2,0,0 (no merge, just move)
+            [8, 0, 0, 0],  // 4,4,0,0 -> 8,0,0,0 (merge)
+            [8, 8, 0, 0],  // 0,8,0,8 -> 8,8,0,0 (no merge, just move)
+            [16, 0, 0, 0]  // 16,0,0,0 -> 16,0,0,0 (no change)
+        ];
+        assert_eq!(board.board, expected);
+    }
+
+    #[test]
+    fn test_move_tiles_right() {
+        let mut board = GameBoard::new();
+        board.set_board([
+            [2, 0, 2, 0],
+            [4, 4, 0, 0],
+            [0, 8, 0, 8],
+            [16, 0, 0, 0]
+        ]);
+        
+        let moved = board.move_tiles(Direction::Right);
+        assert!(moved);
+        
+        let expected = [
+            [0, 0, 2, 2],  // 2,0,2,0 -> 0,0,2,2 (no merge, just move right)
+            [0, 0, 0, 8],  // 4,4,0,0 -> 0,0,0,8 (merge and move right)
+            [0, 0, 8, 8],  // 0,8,0,8 -> 0,0,8,8 (no merge, just move right)
+            [0, 0, 0, 16]  // 16,0,0,0 -> 0,0,0,16 (move right)
+        ];
+        assert_eq!(board.board, expected);
     }
 } 

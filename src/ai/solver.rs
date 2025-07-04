@@ -22,10 +22,8 @@ impl GameBoard {
         let highest_tile = new_board.get_max_tile();
         for i in 0..4 {
             for j in 0..4 {
-                if new_board.board[i][j] == highest_tile {
-                    if (i == 0 || i == 3) && (j == 0 || j == 3) {
-                        score += highest_tile as f32 * 2.0;
-                    }
+                if new_board.board[i][j] == highest_tile && (i == 0 || i == 3) && (j == 0 || j == 3) {
+                    score += highest_tile as f32 * 2.0;
                 }
             }
         }
