@@ -7,7 +7,7 @@ fn main() {
     let max_moves = 5000;
     
     // Configure iterative deepening for better performance
-    let config = IterativeDeepeningConfig {
+    let _config = IterativeDeepeningConfig {
         max_time_ms: 200,     // 200ms max per move for responsiveness
         min_depth: 4,         // Always search at least depth 4
         max_depth: 10,        // Don't go beyond depth 10 for speed

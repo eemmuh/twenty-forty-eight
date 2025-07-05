@@ -22,6 +22,7 @@ impl GameBoard {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn expectimax(&mut self, depth: u32, is_maximizing: bool, alpha: f32, beta: f32) -> f32 {
         if depth == 0 {
             return self.evaluate_board_optimized();

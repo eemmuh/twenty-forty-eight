@@ -12,7 +12,7 @@ pub struct OptimizedEvaluationWeights {
 
 impl OptimizedEvaluationWeights {
     // Simplified adaptive weights - less computation overhead
-    pub fn for_game_state(max_tile: u32, empty_cells: usize) -> Self {
+    pub fn for_game_state(max_tile: u32, _empty_cells: usize) -> Self {
         let progress = if max_tile >= 512 { 1.0 } 
                       else if max_tile >= 128 { 0.7 }
                       else if max_tile >= 32 { 0.4 }
