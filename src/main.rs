@@ -1,11 +1,20 @@
 use twenty_forty_eight::{GameBoard, get_cache_stats, clear_cache};
+use twenty_forty_eight::ai::IterativeDeepeningConfig;
 
 fn main() {
     let mut game = GameBoard::new();
     let mut moves = 0;
     let max_moves = 5000;
     
-    println!("Starting optimized 2048 solver...");
+    // Configure iterative deepening for better performance
+    let config = IterativeDeepeningConfig {
+        max_time_ms: 200,     // 200ms max per move for responsiveness
+        min_depth: 4,         // Always search at least depth 4
+        max_depth: 10,        // Don't go beyond depth 10 for speed
+        time_per_move_ms: 150, // Target 150ms per move
+    };
+    
+    println!("Starting optimized 2048 solver with iterative deepening...");
     
     while !game.is_game_over() && moves < max_moves {
         if moves % 10 == 0 || moves < 10 {
@@ -19,6 +28,7 @@ fn main() {
                      game.count_empty_cells());
         }
         
+        // Use the optimized evaluation with original search for better performance
         if let Some(best_move) = game.find_best_move() {
             if game.move_tiles(best_move) {
                 game.add_random_tile_self();

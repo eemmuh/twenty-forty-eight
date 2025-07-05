@@ -2,7 +2,7 @@ use crate::game::{GameBoard, Direction};
 
 impl GameBoard {
     // Quick evaluation for move ordering - doesn't use transposition table
-    fn quick_evaluate_move(&self, direction: Direction) -> f32 {
+    pub(crate) fn quick_evaluate_move(&self, direction: Direction) -> f32 {
         let mut new_board = self.clone();
         if !new_board.move_tiles(direction) {
             return f32::NEG_INFINITY;
@@ -43,7 +43,7 @@ impl GameBoard {
     }
     
     // Count how many merges a move would create
-    fn count_merges_after_move(&self, direction: Direction) -> u32 {
+    pub(crate) fn count_merges_after_move(&self, direction: Direction) -> u32 {
         let mut new_board = self.clone();
         if !new_board.move_tiles(direction) {
             return 0;
@@ -74,36 +74,27 @@ impl GameBoard {
     }
 
     pub fn find_best_move(&mut self) -> Option<Direction> {
-        let depth = self.calculate_adaptive_depth();
-        let directions = Direction::all();
+        let depth = self.calculate_smart_depth();
         
-        // First pass: quick evaluation for move ordering
-        let mut move_scores: Vec<(Direction, f32)> = directions.iter()
-            .map(|&direction| {
-                let quick_score = self.quick_evaluate_move(direction);
-                (direction, quick_score)
-            })
-            .filter(|(_, score)| *score > f32::NEG_INFINITY)
-            .collect();
+        // Use optimized move ordering
+        let ordered_moves = self.order_moves();
         
-        if move_scores.is_empty() {
+        if ordered_moves.is_empty() {
             return None;
         }
         
-        // Sort moves by quick evaluation (best first) for optimal alpha-beta pruning
-        move_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-        
-        // Second pass: deep evaluation with move ordering
+        // Deep evaluation with optimized search
         let mut best_score = f32::NEG_INFINITY;
         let mut best_move = None;
         
-        for (direction, _) in move_scores {
+        for direction in ordered_moves {
             let mut new_board = self.clone();
             if new_board.move_tiles(direction) {
                 // Update cached values after move
                 new_board.empty_mask = crate::game::GameBoard::calculate_empty_mask(&new_board.board);
                 new_board.max_tile = crate::game::GameBoard::calculate_max_tile(&new_board.board);
-                let score = new_board.expectimax(depth - 1, false, f32::NEG_INFINITY, f32::INFINITY);
+                
+                let score = new_board.expectimax_optimized(depth - 1, false, f32::NEG_INFINITY, f32::INFINITY);
                 if score > best_score {
                     best_score = score;
                     best_move = Some(direction);

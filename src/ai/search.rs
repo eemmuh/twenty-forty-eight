@@ -24,7 +24,7 @@ impl GameBoard {
 
     pub(crate) fn expectimax(&mut self, depth: u32, is_maximizing: bool, alpha: f32, beta: f32) -> f32 {
         if depth == 0 {
-            return self.evaluate_board();
+            return self.evaluate_board_optimized();
         }
         if self.is_game_over() {
             return -100000.0;
@@ -57,14 +57,14 @@ impl GameBoard {
                 }
             }
             if best_score == f32::NEG_INFINITY {
-                return self.evaluate_board();
+                return self.evaluate_board_optimized();
             }
             TRANSPOSITION_TABLE.lock().unwrap().insert(hash, best_score);
             best_score
         } else {
             let empty_cells = self.get_empty_cells();
             if empty_cells.is_empty() {
-                return self.evaluate_board();
+                return self.evaluate_board_optimized();
             }
             let mut total_score = 0.0;
             let cells_to_consider = if empty_cells.len() > 16 {
@@ -94,7 +94,7 @@ impl GameBoard {
         }
     }
 
-    fn get_empty_cells(&self) -> Vec<(usize, usize)> {
+    pub(crate) fn get_empty_cells(&self) -> Vec<(usize, usize)> {
         let mut cells = Vec::new();
         for i in 0..4 {
             for j in 0..4 {
@@ -107,7 +107,7 @@ impl GameBoard {
     }
 
     // Improved board hash
-    fn board_hash(&self) -> u64 {
+    pub(crate) fn board_hash(&self) -> u64 {
         let mut hash = 0u64;
         for i in 0..4 {
             for j in 0..4 {
