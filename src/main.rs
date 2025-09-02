@@ -6,15 +6,15 @@ fn main() {
     let mut moves = 0;
     let max_moves = 5000;
     
-    // Configure iterative deepening for better performance
+    // Configure iterative deepening for better score optimization
     let _config = IterativeDeepeningConfig {
-        max_time_ms: 200,     // 200ms max per move for responsiveness
-        min_depth: 4,         // Always search at least depth 4
-        max_depth: 10,        // Don't go beyond depth 10 for speed
-        time_per_move_ms: 150, // Target 150ms per move
+        max_time_ms: 300,     // 300ms max per move for better analysis
+        min_depth: 5,         // Always search at least depth 5 for better moves
+        max_depth: 12,        // Go deeper for better score optimization
+        time_per_move_ms: 250, // Target 250ms per move for better quality
     };
     
-    println!("Starting optimized 2048 solver with iterative deepening...");
+    println!("Starting score-optimized 2048 solver with enhanced AI...");
     
     while !game.is_game_over() && moves < max_moves {
         if moves % 10 == 0 || moves < 10 {
