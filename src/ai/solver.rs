@@ -14,30 +14,38 @@ impl GameBoard {
         
         let mut score = 0.0;
         
-        // Bonus for merges created
+        // Bonus for merges created (higher weight for score)
         let merges = self.count_merges_after_move(direction);
-        score += merges as f32 * 100.0;
+        score += merges as f32 * 150.0; // Increased from 100.0
         
-        // Bonus for keeping high tiles in corners
+        // Bonus for keeping high tiles in corners (critical for score)
         let highest_tile = new_board.get_max_tile();
         for i in 0..4 {
             for j in 0..4 {
                 if new_board.board[i][j] == highest_tile && (i == 0 || i == 3) && (j == 0 || j == 3) {
-                    score += highest_tile as f32 * 2.0;
+                    score += highest_tile as f32 * 4.0; // Increased from 2.0
                 }
             }
         }
         
-        // Bonus for empty cells
-        score += new_board.count_empty_cells() as f32 * 5.0;
+        // Bonus for empty cells (more important for score)
+        score += new_board.count_empty_cells() as f32 * 8.0; // Increased from 5.0
         
-        // Bonus for maintaining snake pattern
-        let snake_score = new_board.calculate_snake_pattern() * 0.1;
+        // Bonus for maintaining snake pattern (better structure = better score)
+        let snake_score = new_board.calculate_snake_pattern() * 0.2; // Increased from 0.1
         score += snake_score;
         
-        // Penalty for creating isolated tiles
-        let isolation_penalty = new_board.calculate_isolation_penalty() * 0.5;
+        // Penalty for creating isolated tiles (hurts score potential)
+        let isolation_penalty = new_board.calculate_isolation_penalty() * 1.0; // Increased from 0.5
         score -= isolation_penalty;
+        
+        // NEW: Bonus for potential future merges
+        let future_merge_potential = new_board.calculate_merge_potential() * 0.3;
+        score += future_merge_potential;
+        
+        // NEW: Bonus for maintaining monotonicity (better for score)
+        let monotonicity_bonus = new_board.calculate_monotonicity() * 0.5;
+        score += monotonicity_bonus;
         
         score
     }
