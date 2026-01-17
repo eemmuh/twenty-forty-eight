@@ -327,9 +327,10 @@ mod tests {
         assert_eq!(board.get_adaptive_time_limit(), 50);
         
         // Mid game (9 empty cells) - should return 100ms
+        // Need 7 tiles to get 9 empty cells (16 - 7 = 9)
         board.set_board([
             [2, 4, 8, 16],
-            [0, 0, 0, 0],
+            [32, 64, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
         ]);
