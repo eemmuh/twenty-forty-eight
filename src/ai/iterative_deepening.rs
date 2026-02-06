@@ -317,22 +317,32 @@ mod tests {
     fn test_adaptive_time_limit() {
         let mut board = GameBoard::new();
         
-        // Early game
+        // Early game (15 empty cells) - should return 50ms
         board.set_board([
             [2, 0, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0],
             [0, 0, 0, 0]
         ]);
+        assert_eq!(board.get_adaptive_time_limit(), 50);
+        
+        // Mid game (9 empty cells) - should return 100ms
+        // Need 7 tiles to get 9 empty cells (16 - 7 = 9)
+        board.set_board([
+            [2, 4, 8, 16],
+            [32, 64, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]);
         assert_eq!(board.get_adaptive_time_limit(), 100);
         
-        // Late game
+        // Late game (1 empty cell) - should return 300ms (matches 0..=3 pattern first)
         board.set_board([
             [1024, 512, 256, 128],
             [64, 32, 16, 8],
             [4, 2, 4, 2],
             [2, 4, 2, 0]
         ]);
-        assert!(board.get_adaptive_time_limit() >= 500);
+        assert_eq!(board.get_adaptive_time_limit(), 300);
     }
 } 
