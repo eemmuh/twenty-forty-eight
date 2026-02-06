@@ -14,3 +14,5 @@
 # debug files
 *.log
 
+# personal notes (not for version control)
+notes/
