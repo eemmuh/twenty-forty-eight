@@ -27,7 +27,7 @@ A high-performance AI solver for the 2048 game, written in Rust. This implementa
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/twenty-forty-eight.git
+git clone https://github.com/eemmuh/twenty-forty-eight.git
 cd twenty-forty-eight
 ```
 

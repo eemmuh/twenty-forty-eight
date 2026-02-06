@@ -383,3 +383,4 @@ When adding new features:
 2. **New Evaluation**: Add to `src/ai/` and export via `mod.rs`
 3. **New Game Feature**: Add to `src/game/board.rs` or create new module
 4. **New Binary**: Add to `src/bin/` and update `Cargo.toml` if needed
+
