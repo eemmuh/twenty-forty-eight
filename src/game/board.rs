@@ -202,6 +202,36 @@ impl GameBoard {
         self.empty_mask = Self::calculate_empty_mask(&self.board);
         self.max_tile = Self::calculate_max_tile(&self.board);
     }
+
+    /// List of (row, col) for every empty cell. Used by AI chance nodes.
+    pub(crate) fn get_empty_cells(&self) -> Vec<(usize, usize)> {
+        let mut cells = Vec::new();
+        for i in 0..4 {
+            for j in 0..4 {
+                if (self.empty_mask & (1 << (i * 4 + j))) != 0 {
+                    cells.push((i, j));
+                }
+            }
+        }
+        cells
+    }
+
+    /// 64-bit hash of the board for transposition table lookups.
+    pub(crate) fn board_hash(&self) -> u64 {
+        let mut hash = 0u64;
+        for i in 0..4 {
+            for j in 0..4 {
+                let value = self.board[i][j];
+                if value != 0 {
+                    let log_value = value.trailing_zeros() as u64;
+                    let position = (i * 4 + j) as u64;
+                    hash ^= (log_value << 4) | position;
+                    hash = hash.rotate_left(7);
+                }
+            }
+        }
+        hash
+    }
 }
 
 #[cfg(test)]
