@@ -9,11 +9,11 @@ impl GameBoard {
         
         // Base depth based on empty cells (more empty = deeper search possible)
         let base_depth = match empty_cells {
-            0..=2 => 4,   // Endgame: shallow but fast
-            3..=5 => 5,   // Late game: moderate depth
-            6..=8 => 6,   // Mid game: deeper search
-            9..=12 => 7,  // Early-mid game: good depth
-            _ => 8,       // Early game: deepest search
+            0..=2 => 5,   // Endgame: need accuracy
+            3..=5 => 6,   // Late game: moderate depth
+            6..=8 => 7,   // Mid game: deeper search
+            9..=12 => 8,  // Early-mid game: good depth
+            _ => 9,       // Early game: deepest search
         };
         
         // Adjust based on max tile (higher tiles need more careful analysis)
@@ -33,9 +33,9 @@ impl GameBoard {
             0  // Normal complexity: no adjustment
         };
         
-        // Ensure depth is within reasonable bounds
+        // Ensure depth is within reasonable bounds (allow up to 11 for critical phases)
         let total_depth = base_depth + tile_bonus + complexity_adjustment;
-        total_depth.max(3).min(9)
+        total_depth.max(4).min(11)
     }
     
     // Calculate board complexity (0.0 = simple, 1.0 = complex)
@@ -67,20 +67,26 @@ impl GameBoard {
         complexity.min(1.0)
     }
     
-    // Early termination conditions for search
+    // Early termination: only when one move is clearly dominant (avoid settling for suboptimal moves)
     pub fn should_terminate_early(&self, depth: u32, current_score: f32, best_score: f32) -> bool {
-        // If we have a very good move, don't waste time searching deeper
-        if current_score > best_score + 1000.0 && depth > 2 {
-            return true;
+        // Don't early-terminate when we're building toward 2048 (high tiles need full search)
+        if self.get_max_tile() >= 256 {
+            return false;
         }
         
         // If the board is nearly full, focus on immediate moves
-        if self.count_empty_cells() <= 2 && depth > 3 {
+        if self.count_empty_cells() <= 2 && depth > 4 {
             return true;
         }
         
-        // If we have a dominant move (much better than others), use it
-        if current_score > best_score * 1.5 && current_score > 500.0 {
+        // Only terminate when one move is overwhelmingly better (avoid cutting off better moves)
+        if depth >= 5 {
+            return false;
+        }
+        if current_score > best_score + 3000.0 && best_score > f32::NEG_INFINITY + 1000.0 {
+            return true;
+        }
+        if current_score > best_score * 2.0 && current_score > 2000.0 {
             return true;
         }
         
