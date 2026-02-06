@@ -17,7 +17,7 @@ fn main() {
     println!("Starting score-optimized 2048 solver with enhanced AI...");
     
     while !game.is_game_over() && moves < max_moves {
-        if moves % 10 == 0 || moves < 10 {
+        if moves % 50 == 0 || moves < 10 {
             println!("\nMove {}", moves + 1);
             for row in &game.get_board() {
                 println!("{:>4} {:>4} {:>4} {:>4}", row[0], row[1], row[2], row[3]);

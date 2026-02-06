@@ -3,9 +3,9 @@ name = "twenty-forty-eight"
 version = "0.1.0"
 edition = "2021"
 description = "A high-performance AI solver for the 2048 game"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["twenty-forty-eight"]
 license = "MIT"
-repository = "https://github.com/yourusername/twenty-forty-eight"
+repository = "https://github.com/eemmuh/twenty-forty-eight"
 keywords = ["game", "ai", "solver", "2048", "algorithm"]
 categories = ["games", "algorithms"]
 
