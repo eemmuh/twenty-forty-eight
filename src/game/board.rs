@@ -1,5 +1,24 @@
 use rand::prelude::SliceRandom;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use super::moves::Direction;
+
+/// Zobrist keys: 16 cells × 16 value classes (0=empty, 1–15=log2 of tile).
+/// Deterministic seed so same position always hashes the same.
+fn zobrist_table() -> [[u64; 16]; 16] {
+    let mut rng = StdRng::seed_from_u64(0x2048_2048);
+    let mut t = [[0u64; 16]; 16];
+    for i in 0..16 {
+        for j in 0..16 {
+            t[i][j] = rng.gen();
+        }
+    }
+    t
+}
+
+lazy_static::lazy_static! {
+    static ref ZOBRIST: [[u64; 16]; 16] = zobrist_table();
+}
 
 #[derive(Debug, Clone)]
 pub struct GameBoard {
@@ -216,18 +235,16 @@ impl GameBoard {
         cells
     }
 
-    /// 64-bit hash of the board for transposition table lookups.
+    /// 64-bit Zobrist hash for transposition table. Low collision rate so
+    /// we keep more useful entries and get better cache hit rate.
     pub(crate) fn board_hash(&self) -> u64 {
         let mut hash = 0u64;
         for i in 0..4 {
             for j in 0..4 {
+                let pos = i * 4 + j;
                 let value = self.board[i][j];
-                if value != 0 {
-                    let log_value = value.trailing_zeros() as u64;
-                    let position = (i * 4 + j) as u64;
-                    hash ^= (log_value << 4) | position;
-                    hash = hash.rotate_left(7);
-                }
+                let value_index = if value == 0 { 0 } else { value.trailing_zeros() as usize };
+                hash ^= ZOBRIST[pos][value_index];
             }
         }
         hash
