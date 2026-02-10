@@ -68,31 +68,32 @@ impl GameBoard {
             + edge_control * 0.8          // Edge control helps maintain structure
     }
 
-    // Optimized corner bonus - strong preference for max tile in corner (critical for 2048)
+    // One-corner bias: strong preference for max tile in top-left (0,0); other corners weaker.
     fn calculate_corner_bonus_optimized(&self) -> f32 {
         let max_tile = self.get_max_tile();
-        
-        // Check each corner for the max tile
-        let corners = [(0, 0), (0, 3), (3, 0), (3, 3)];
-        for &(row, col) in &corners {
+
+        if self.board[0][0] == max_tile {
+            return max_tile as f32 * 20.0; // Primary corner: top-left
+        }
+
+        let other_corners = [(0, 3), (3, 0), (3, 3)];
+        for &(row, col) in &other_corners {
             if self.board[row][col] == max_tile {
-                return max_tile as f32 * 16.0; // Strong bonus for max tile in corner
+                return max_tile as f32 * 8.0; // Secondary corners
             }
         }
-        
-        // Check if max tile is on an edge
+
         for row in 0..4 {
             for col in 0..4 {
                 if self.board[row][col] == max_tile {
                     if row == 0 || row == 3 || col == 0 || col == 3 {
-                        return max_tile as f32 * 2.0; // Small bonus for edge
+                        return max_tile as f32 * 2.0;
                     }
-                    // Max tile in middle is bad for snake strategy
                     return -(max_tile as f32 * 2.0);
                 }
             }
         }
-        
+
         -(max_tile as f32)
     }
 

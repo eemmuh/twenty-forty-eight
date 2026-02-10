@@ -1,4 +1,4 @@
-# 2048 AI Solver - Project Documentation
+# Project Documentation
 
 ## Project Structure
 

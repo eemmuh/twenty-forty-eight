@@ -53,20 +53,24 @@ impl GameBoard {
             + weights.position * position_score
     }
 
+    /// Single snake path from top-left (0,0) with strictly decreasing weights (16 → 1).
+    /// Path: row0 L→R, then row1 R→L, row2 L→R, row3 R→L.
     pub(crate) fn calculate_position_score(&self) -> f32 {
-        let mut score = 0.0;
-        let snake_weights = [
-            [20.0, 19.0, 18.0, 17.0],
-            [12.0, 13.0, 14.0, 15.0],
-            [11.0, 10.0, 9.0,  8.0],
-            [0.0,  1.0,  2.0,  3.0],
+        const SNAKE_PATH: [(u8, u8); 16] = [
+            (0, 0), (0, 1), (0, 2), (0, 3),
+            (1, 3), (1, 2), (1, 1), (1, 0),
+            (2, 0), (2, 1), (2, 2), (2, 3),
+            (3, 3), (3, 2), (3, 1), (3, 0),
         ];
-        for (i, row) in snake_weights.iter().enumerate() {
-            for (j, &weight) in row.iter().enumerate() {
-                let value = self.board[i][j];
-                if value > 0 {
-                    score += value as f32 * weight;
-                }
+        const SNAKE_WEIGHTS: [f32; 16] = [
+            16.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0,
+            8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0,
+        ];
+        let mut score = 0.0;
+        for (&(i, j), &weight) in SNAKE_PATH.iter().zip(SNAKE_WEIGHTS.iter()) {
+            let value = self.board[i as usize][j as usize];
+            if value > 0 {
+                score += value as f32 * weight;
             }
         }
         score
