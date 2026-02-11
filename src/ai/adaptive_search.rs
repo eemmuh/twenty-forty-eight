@@ -16,10 +16,11 @@ impl GameBoard {
             _ => 9,       // Early game: deepest search
         };
         
-        // Adjust based on max tile (higher tiles need more careful analysis)
+        // Deeper search when building toward 2048 (critical phase needs more analysis)
         let tile_bonus = match max_tile {
-            1024..=u32::MAX => 2,  // Very high tiles: need deep analysis
-            512..=1023 => 1,       // High tiles: slightly deeper
+            1536..=u32::MAX => 3,  // Very close to 2048: maximum depth
+            1024..=1535 => 3,      // Building 2048: deep analysis needed
+            512..=1023 => 2,       // Building toward 1024: deeper search
             256..=511 => 0,        // Medium tiles: normal depth
             _ => 0,                // Low tiles: normal depth
         };
@@ -33,9 +34,9 @@ impl GameBoard {
             0  // Normal complexity: no adjustment
         };
         
-        // Ensure depth is within reasonable bounds (allow up to 11 for critical phases)
+        // Ensure depth is within reasonable bounds (allow up to 12 when building 2048)
         let total_depth = base_depth + tile_bonus + complexity_adjustment;
-        total_depth.max(4).min(11)
+        total_depth.max(4).min(12)
     }
     
     // Calculate board complexity (0.0 = simple, 1.0 = complex)
@@ -69,8 +70,15 @@ impl GameBoard {
     
     // Early termination: only when one move is clearly dominant (avoid settling for suboptimal moves)
     pub fn should_terminate_early(&self, depth: u32, current_score: f32, best_score: f32) -> bool {
-        // Don't early-terminate when we're building toward 2048 (high tiles need full search)
-        if self.get_max_tile() >= 256 {
+        let max_tile = self.get_max_tile();
+        
+        // Never early-terminate when building toward 2048 (critical phase needs full search)
+        if max_tile >= 512 {
+            return false;
+        }
+        
+        // Don't early-terminate when building toward high tiles (256+)
+        if max_tile >= 256 {
             return false;
         }
         
