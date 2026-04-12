@@ -28,8 +28,7 @@ twenty-forty-eight/
 │   │   └── chance_node_optimization.rs # Strategic empty cell selection
 │   ├── cache/              # Caching module
 │   │   ├── mod.rs          # Cache module entry point
-│   │   ├── transposition.rs # Basic transposition table (active)
-│   │   └── enhanced_transposition.rs # Enhanced caching (dormant)
+│   │   └── transposition.rs # Transposition table (hash + depth + node type)
 │   └── bin/                # Additional binaries (empty)
 ├── examples/
 │   └── cli_game.rs         # Example CLI game usage
@@ -62,9 +61,8 @@ twenty-forty-eight/
 **`mod.rs`**: Public interface - exports evaluation weights and configs
 
 ### Cache Module (`src/cache/`)
-- **`transposition.rs`**: Basic transposition table for caching board evaluations (active)
-- **`enhanced_transposition.rs`**: Enhanced caching with depth bounds and node types (dormant)
-- **`mod.rs`**: Public interface - exports cache stats, clear functions, and table types
+- **`transposition.rs`**: Transposition table keyed by board hash, remaining search depth, and node type (MAX vs chance). Internal `tt_probe` / `tt_store`; single `Mutex` for map and hit/miss stats.
+- **`mod.rs`**: Public interface — `get_cache_stats`, `clear_cache` (crate-internal probe/store are not part of the public API)
 
 ## Key Features
 
@@ -80,7 +78,7 @@ twenty-forty-eight/
 - **Move ordering** - evaluates moves by quality before deep search
 - **Strategic chance nodes** - only considers important empty cell positions
 - **Early termination** - stops searching when dominant move found
-- **Transposition table** - caches evaluated positions to avoid recomputation
+- **Transposition table** - caches expectimax results per `(position, depth, MAX vs chance)` so reuse is correct when the same board appears at different depths or phases
 
 ### 3. Performance Optimizations
 - **Bitmask-based empty cell tracking** - fast empty cell detection
@@ -175,7 +173,7 @@ cargo test test_name
 The AI solver typically achieves:
 - **Highest tile**: 1024+ consistently, often reaches 2048+
 - **Search depth**: 4-9 levels (adaptive based on game state)
-- **Cache efficiency**: 20-50% hit rate
+- **Cache efficiency**: Transposition hits reduce repeated work; rate depends on depth and branching
 - **Move speed**: ~1000-5000+ moves per game
 - **Evaluation speed**: <1ms per board evaluation (optimized)
 
@@ -226,7 +224,7 @@ For each move, the AI follows this process:
 3. **Deep Search (Expectimax)**
    - For each move (in quality order):
      - Simulate the move
-     - Check transposition table (cache lookup)
+     - Check transposition table using `(board_hash, remaining_depth, is_max_node)`
      - If cached: return cached score immediately
      - If not cached: recursively evaluate resulting position
    - MAX nodes: Choose maximum score among moves
@@ -234,8 +232,8 @@ For each move, the AI follows this process:
    - Only considers strategic empty cell positions (corners, edges, near max tile)
 
 4. **Store Results in Cache**
-   - After evaluating a position, store hash → score mapping
-   - Future identical positions use cached value
+   - After evaluating a node, store score under the same `(hash, depth, MAX vs chance)` key
+   - Reuse only applies when hash, remaining depth, and node type all match (same search question)
 
 5. **Select Best Move**
    - Return the direction with highest expected score
@@ -254,34 +252,32 @@ The board evaluation considers:
 
 ### Transposition Table (Caching)
 
-The transposition table is a critical performance optimization that caches previously evaluated board positions.
+The transposition table avoids redoing expectimax work when the search revisits the **same situation**: same tile layout, same **remaining ply depth**, and same **kind of node** (player to move vs random spawn). Caching on hash alone was incorrect, because a board’s backed-up value depends on how deep the search continues and whether the next step is MAX or chance.
 
 #### How It Works
 
 1. **Board Hashing**
-   - Each board position is converted to a unique 64-bit hash
-   - Uses tile values (log₂) and positions
-   - Fast hash computation for lookups
+   - Each board is mapped to a 64-bit **Zobrist** hash (XOR of per-cell keys from `GameBoard::board_hash()` in `board.rs`)
+   - Low collision rate; fast to compute
 
-2. **Cache Lookup (Before Evaluation)**
-   ```rust
-   let hash = board.board_hash();
-   if let Some(cached_score) = TRANSPOSITION_TABLE.get(&hash) {
-       return cached_score;  // Skip evaluation!
-   }
-   ```
+2. **Composite cache key**
+   - `hash` — Zobrist fingerprint of the grid
+   - `depth` — remaining depth passed into `expectimax_optimized` at that node
+   - `max_node` — `true` at MAX nodes (player chooses a move next), `false` at CHANCE nodes (random 2/4 spawn next)
 
-3. **Cache Storage (After Evaluation)**
-   ```rust
-   TRANSPOSITION_TABLE.insert(hash, score);
-   ```
+3. **Lookup (before expanding a node)**  
+   Implemented in `src/cache/transposition.rs` as `tt_probe(hash, depth, max_node)` and called from `adaptive_search.rs`. One lock acquires the map and updates hit or miss counters.
+
+4. **Store (after a score is known)**  
+   `tt_store(hash, depth, max_node, score)` inserts into the same map.
 
 #### Benefits
 
-- **20-50% cache hit rate** in typical games
-- **Significant speedup**: Avoids recomputing identical positions
-- **Memory efficient**: Auto-clears when exceeding 1M entries
-- **Thread-safe**: Uses Mutex for concurrent access
+- **Correct reuse**: No mixing of shallow vs deep results or MAX vs chance values for the same hash
+- **Fewer lock operations**: One `Mutex` guards the map and statistics (not separate locks per operation)
+- **Typical hit rate** remains useful in long searches, though exact percentages vary with depth and branching
+- **Memory**: Same policy as before — clear when exceeding 1M entries (see `main.rs`)
+- **Thread-safe**: `Mutex` protects all table access
 
 #### Example
 
@@ -313,11 +309,11 @@ println!("Cache: {} hits, {} misses, {:.1}% hit rate, {} entries",
 
 ## Testing
 
-The project includes **30 comprehensive unit tests** covering:
+The project includes **22 unit tests** covering:
 
 - **Game Logic**: Board operations, move validation, tile merging, game over detection
 - **AI Components**: Move ordering, evaluation functions, depth calculation, complexity analysis
-- **Cache System**: Transposition table operations, cache statistics
+- **Cache System**: Transposition key behavior (`depth` + node type), cache statistics
 - **Bitboard**: Alternative representation (if used)
 
 ### Running Tests
@@ -341,10 +337,10 @@ cargo test --release
 
 ### Test Coverage
 
-- All 30 tests passing
+- All library unit tests passing (`cargo test`)
 - Game logic fully tested
 - AI components validated
-- Cache operations verified
+- Transposition table keying verified in `cache::transposition` tests
 
 ## Troubleshooting
 

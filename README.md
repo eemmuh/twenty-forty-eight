@@ -7,7 +7,7 @@ A high-performance AI solver for the 2048 game, written in Rust. This implementa
 - **High-Performance AI**: Expectimax algorithm with adaptive depth (4-9 levels)
 - **Advanced Move Ordering**: Fast heuristic evaluation before deep search for optimal alpha-beta pruning
 - **Smart Board Evaluation**: Multiple heuristics including monotonicity, smoothness, corner bonus, snake pattern, and merge potential
-- **Memory Efficient**: Transposition table with automatic cache management (clears at 1M entries)
+- **Memory Efficient**: Transposition table keyed by position, depth, and node type; automatic cache management (clears at 1M entries)
 - **Modular Architecture**: Clean separation of concerns (game/ai/cache) with comprehensive test coverage
 - **Performance Optimized**: Strategic chance node optimization and early termination
 - **Multiple Algorithms**: Active optimized implementation with dormant alternatives available
@@ -65,7 +65,7 @@ cargo run --example cli_game
 
 3. **Performance Optimizations**
    - **Move Ordering**: Prioritizes promising moves first (improves alpha-beta by 50%+)
-   - **Transposition Table**: Caches board evaluations with 20-50% hit rate
+   - **Transposition Table**: Caches expectimax results per `(board hash, depth, MAX vs chance)` for correct reuse; hit rate varies with search shape
    - **Adaptive Search Depth**: 4-9 levels based on game state (early game deeper, late game shallower)
    - **Efficient Board Representation**: Bitmask for empty cells, cached max tile
    - **Strategic Chance Nodes**: Only evaluates important empty cell positions
@@ -105,8 +105,7 @@ twenty-forty-eight/
 │   │   └── iterative_deepening.rs # Time-bounded search (dormant)
 │   ├── cache/               # Caching module
 │   │   ├── mod.rs           # Cache module entry point
-│   │   ├── transposition.rs # Basic transposition table (active)
-│   │   └── enhanced_transposition.rs # Enhanced caching (dormant)
+│   │   └── transposition.rs # Transposition table (hash + depth + node type)
 │   └── bin/                 # Additional binaries (empty)
 ├── examples/
 │   └── cli_game.rs          # Example CLI game usage
@@ -122,7 +121,7 @@ twenty-forty-eight/
 The AI consistently achieves excellent results:
 - **2048 Tile**: Reached consistently, often reaches 2048+
 - **Search Depth**: 4-9 levels (adaptive based on game state)
-- **Cache Efficiency**: 20-50% hit rate on transposition table
+- **Cache**: Transposition table avoids redundant work when the same node recurs; statistics via `get_cache_stats()`
 - **Move Speed**: ~1000-5000+ moves per game
 - **Evaluation Speed**: <1ms per board evaluation (optimized)
 
@@ -130,7 +129,7 @@ The AI consistently achieves excellent results:
 
 ## Testing
 
-The project includes **30 comprehensive unit tests** covering game logic, AI components, and cache operations:
+The project includes **22** library unit tests covering game logic, AI components, and cache behavior:
 
 ```bash
 # Run all tests
@@ -146,7 +145,7 @@ cargo test test_merge_row_basic
 cargo test --release
 ```
 
-**Test Status**: All 30 tests passing
+**Test Status**: All library tests passing (`cargo test`)
 
 ## Documentation
 
