@@ -1,3 +1,4 @@
 mod transposition;
 
-pub use transposition::{get_cache_stats, clear_cache, TRANSPOSITION_TABLE, CACHE_HITS, CACHE_MISSES}; 
+pub(crate) use transposition::{tt_probe, tt_store};
+pub use transposition::{get_cache_stats, clear_cache}; 

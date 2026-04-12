@@ -111,15 +111,9 @@ impl GameBoard {
             return -100000.0;
         }
         
-        // Check transposition table
         let hash = self.board_hash();
-        if let Some(&cached_score) = crate::cache::TRANSPOSITION_TABLE.lock().unwrap().get(&hash) {
-            let mut hits = crate::cache::CACHE_HITS.lock().unwrap();
-            *hits += 1;
+        if let Some(cached_score) = crate::cache::tt_probe(hash, depth, is_maximizing) {
             return cached_score;
-        } else {
-            let mut misses = crate::cache::CACHE_MISSES.lock().unwrap();
-            *misses += 1;
         }
         
         if is_maximizing {
@@ -157,7 +151,7 @@ impl GameBoard {
                 best_score = self.evaluate_board_optimized();
             }
             
-            crate::cache::TRANSPOSITION_TABLE.lock().unwrap().insert(hash, best_score);
+            crate::cache::tt_store(hash, depth, is_maximizing, best_score);
             best_score
         } else {
             // Chance node - use strategic empty cell selection
@@ -197,7 +191,7 @@ impl GameBoard {
                 self.evaluate_board_optimized()
             };
             
-            crate::cache::TRANSPOSITION_TABLE.lock().unwrap().insert(hash, avg_score);
+            crate::cache::tt_store(hash, depth, is_maximizing, avg_score);
             avg_score
         }
     }
