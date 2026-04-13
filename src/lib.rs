@@ -3,5 +3,5 @@ pub mod ai;
 pub mod cache;
  
 pub use game::{GameBoard, Direction};
-pub use cache::{get_cache_stats, clear_cache};
+pub use cache::{clear_cache, get_cache_stats, with_thread_tt, TranspositionState};
 pub use ai::EvaluationWeights; 

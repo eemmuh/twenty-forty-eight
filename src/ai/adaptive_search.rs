@@ -102,7 +102,14 @@ impl GameBoard {
     }
     
     // Optimized expectimax with early termination
-    pub fn expectimax_optimized(&mut self, depth: u32, is_maximizing: bool, alpha: f32, beta: f32) -> f32 {
+    pub fn expectimax_optimized(
+        &mut self,
+        depth: u32,
+        is_maximizing: bool,
+        alpha: f32,
+        beta: f32,
+        tt: &mut crate::cache::TranspositionState,
+    ) -> f32 {
         if depth == 0 {
             return self.evaluate_board_optimized();
         }
@@ -112,7 +119,7 @@ impl GameBoard {
         }
         
         let hash = self.board_hash();
-        if let Some(cached_score) = crate::cache::tt_probe(hash, depth, is_maximizing) {
+        if let Some(cached_score) = tt.probe(hash, depth, is_maximizing) {
             return cached_score;
         }
         
@@ -129,7 +136,7 @@ impl GameBoard {
                     new_board.empty_mask = GameBoard::calculate_empty_mask(&new_board.board);
                     new_board.max_tile = GameBoard::calculate_max_tile(&new_board.board);
                     
-                    let score = new_board.expectimax_optimized(depth - 1, false, alpha, beta);
+                    let score = new_board.expectimax_optimized(depth - 1, false, alpha, beta, tt);
                     
                     if score > best_score {
                         best_score = score;
@@ -151,7 +158,7 @@ impl GameBoard {
                 best_score = self.evaluate_board_optimized();
             }
             
-            crate::cache::tt_store(hash, depth, is_maximizing, best_score);
+            tt.store(hash, depth, is_maximizing, best_score);
             best_score
         } else {
             // Chance node - use strategic empty cell selection
@@ -170,7 +177,7 @@ impl GameBoard {
                 new_board_2.empty_mask = GameBoard::calculate_empty_mask(&new_board_2.board);
                 new_board_2.max_tile = GameBoard::calculate_max_tile(&new_board_2.board);
                 
-                let score_2 = new_board_2.expectimax_optimized(depth - 1, true, alpha, beta);
+                let score_2 = new_board_2.expectimax_optimized(depth - 1, true, alpha, beta, tt);
                 total_score += score_2 * 0.9;
                 total_weight += 0.9;
                 
@@ -180,7 +187,7 @@ impl GameBoard {
                 new_board_4.empty_mask = GameBoard::calculate_empty_mask(&new_board_4.board);
                 new_board_4.max_tile = GameBoard::calculate_max_tile(&new_board_4.board);
                 
-                let score_4 = new_board_4.expectimax_optimized(depth - 1, true, alpha, beta);
+                let score_4 = new_board_4.expectimax_optimized(depth - 1, true, alpha, beta, tt);
                 total_score += score_4 * 0.1;
                 total_weight += 0.1;
             }
@@ -191,7 +198,7 @@ impl GameBoard {
                 self.evaluate_board_optimized()
             };
             
-            crate::cache::tt_store(hash, depth, is_maximizing, avg_score);
+            tt.store(hash, depth, is_maximizing, avg_score);
             avg_score
         }
     }

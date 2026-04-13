@@ -33,34 +33,42 @@ impl GameBoard {
     }
 
     pub fn find_best_move(&mut self) -> Option<Direction> {
-        let depth = self.calculate_smart_depth();
-        
-        // Use optimized move ordering
-        let ordered_moves = self.order_moves();
-        
-        if ordered_moves.is_empty() {
-            return None;
-        }
-        
-        // Deep evaluation with optimized search
-        let mut best_score = f32::NEG_INFINITY;
-        let mut best_move = None;
-        
-        for direction in ordered_moves {
-            let mut new_board = self.clone();
-            if new_board.move_tiles(direction) {
-                // Update cached values after move
-                new_board.empty_mask = crate::game::GameBoard::calculate_empty_mask(&new_board.board);
-                new_board.max_tile = crate::game::GameBoard::calculate_max_tile(&new_board.board);
-                
-                let score = new_board.expectimax_optimized(depth - 1, false, f32::NEG_INFINITY, f32::INFINITY);
-                if score > best_score {
-                    best_score = score;
-                    best_move = Some(direction);
+        crate::cache::with_thread_tt(|tt| {
+            let depth = self.calculate_smart_depth();
+
+            // Use optimized move ordering
+            let ordered_moves = self.order_moves();
+
+            if ordered_moves.is_empty() {
+                return None;
+            }
+
+            // Deep evaluation with optimized search (one &mut tt for all roots and recursion)
+            let mut best_score = f32::NEG_INFINITY;
+            let mut best_move = None;
+
+            for direction in ordered_moves {
+                let mut new_board = self.clone();
+                if new_board.move_tiles(direction) {
+                    // Update cached values after move
+                    new_board.empty_mask = crate::game::GameBoard::calculate_empty_mask(&new_board.board);
+                    new_board.max_tile = crate::game::GameBoard::calculate_max_tile(&new_board.board);
+
+                    let score = new_board.expectimax_optimized(
+                        depth - 1,
+                        false,
+                        f32::NEG_INFINITY,
+                        f32::INFINITY,
+                        tt,
+                    );
+                    if score > best_score {
+                        best_score = score;
+                        best_move = Some(direction);
+                    }
                 }
             }
-        }
-        
-        best_move
+
+            best_move
+        })
     }
 } 
