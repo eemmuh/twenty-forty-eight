@@ -61,8 +61,8 @@ twenty-forty-eight/
 **`mod.rs`**: Public interface - exports evaluation weights and configs
 
 ### Cache Module (`src/cache/`)
-- **`transposition.rs`**: Transposition table keyed by board hash, remaining search depth, and node type (MAX vs chance). Internal `tt_probe` / `tt_store`; single `Mutex` for map and hit/miss stats.
-- **`mod.rs`**: Public interface — `get_cache_stats`, `clear_cache` (crate-internal probe/store are not part of the public API)
+- **`transposition.rs`**: Transposition table keyed by board hash, remaining search depth, and node type (MAX vs chance). Search takes `&mut TranspositionState`; `find_best_move` uses a per-thread table via `with_thread_tt` so entries persist across moves without locking every node.
+- **`mod.rs`**: Public interface — `TranspositionState`, `with_thread_tt`, `get_cache_stats`, `clear_cache`
 
 ## Key Features
 
@@ -194,7 +194,7 @@ The AI solver typically achieves:
 
 ### Standard Library APIs Used
 - `std::collections::HashMap` - Transposition table storage
-- `std::sync::Mutex` - Thread-safe cache access
+- `std::cell::RefCell` / `thread_local!` - Per-thread persistent TT for the solver (`get_cache_stats` / `clear_cache`); search uses `&mut TranspositionState` with no mutex per probe
 - `std::time::{Instant, Duration}` - Time-bounded search (iterative deepening)
 
 ## Algorithm Details
@@ -265,19 +265,18 @@ The transposition table avoids redoing expectimax work when the search revisits 
    - `depth` — remaining depth passed into `expectimax_optimized` at that node
    - `max_node` — `true` at MAX nodes (player chooses a move next), `false` at CHANCE nodes (random 2/4 spawn next)
 
-3. **Lookup (before expanding a node)**  
-   Implemented in `src/cache/transposition.rs` as `tt_probe(hash, depth, max_node)` and called from `adaptive_search.rs`. One lock acquires the map and updates hit or miss counters.
+3. **Lookup / store**  
+   `TranspositionState::probe` / `store` on a `&mut` passed through `expectimax_optimized` (no mutex per node). The CLI solver holds that `&mut` for the whole `find_best_move` via `with_thread_tt`, using a `thread_local` table so the map survives between moves on the same thread.
 
-4. **Store (after a score is known)**  
-   `tt_store(hash, depth, max_node, score)` inserts into the same map.
+4. **Parallel search**  
+   Prefer one `TranspositionState` per thread rather than sharing a single locked map.
 
 #### Benefits
 
 - **Correct reuse**: No mixing of shallow vs deep results or MAX vs chance values for the same hash
-- **Fewer lock operations**: One `Mutex` guards the map and statistics (not separate locks per operation)
+- **No lock on hot path**: Table updates use plain `HashMap` through `&mut TranspositionState`; the solver uses one `thread_local` map per OS thread
 - **Typical hit rate** remains useful in long searches, though exact percentages vary with depth and branching
 - **Memory**: Same policy as before — clear when exceeding 1M entries (see `main.rs`)
-- **Thread-safe**: `Mutex` protects all table access
 
 #### Example
 
